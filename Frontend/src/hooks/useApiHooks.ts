@@ -192,11 +192,7 @@ export const usePrograms = () => {
       setLoading(false);
     }
   }, []);
-  
-  // Automatically fetch programs when the hook is initialized
-  useEffect(() => {
-    fetchPrograms();
-  }, [fetchPrograms]);
+
   const getProgramById = async (id: string) => {
     setLoading(true);
     setError(null);
@@ -413,11 +409,12 @@ export const useTestimonials = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fetchTestimonials = useCallback(async (params?: { limit?: number; ngoId?: string }) => {
+  const fetchTestimonials = useCallback(async (params?: { limit?: number; ngoId?: string } | string) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiService.getTestimonials(params?.ngoId ? { ngoId: params.ngoId } : undefined);
+      const ngoId = typeof params === 'string' ? params : params?.ngoId;
+      const response = await apiService.getTestimonials(ngoId ? { ngoId } : undefined);
       setTestimonials(response.data);    } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to fetch testimonials'));
     } finally {

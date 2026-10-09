@@ -9,6 +9,18 @@ import { Icons } from '../icons';
 import { NGO, Program, Testimonial, MediaItem, Notice } from '../../types';
 import { formatDate, truncateText } from '../../utils/formatters';
 
+function getSafeHostname(urlStr: string): string {
+  if (!urlStr) return '';
+  try {
+    const formatted = urlStr.startsWith('http://') || urlStr.startsWith('https://') 
+      ? urlStr 
+      : `https://${urlStr}`;
+    return new URL(formatted).hostname;
+  } catch {
+    return urlStr.replace(/^https?:\/\//, '').split('/')[0] || urlStr;
+  }
+}
+
 interface NGOProfileProps {
   ngo: NGO;
   programs: Program[];
@@ -68,8 +80,11 @@ const NGOProfile: React.FC<NGOProfileProps> = ({
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500 animate-pulse"></div>
               <div className="relative w-48 h-48 rounded-full overflow-hidden bg-white p-6 shadow-2xl ring-8 ring-white/30 group-hover:ring-white/50 transition-all duration-500 transform group-hover:scale-105">
                 <img 
-                  src={ngo.logo} 
+                  src={ngo.logo || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=300&auto=format&fit=crop&q=80'} 
                   alt={ngo.name} 
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=300&auto=format&fit=crop&q=80';
+                  }}
                   className="w-full h-full object-cover rounded-full"
                 />
               </div>
@@ -123,22 +138,26 @@ const NGOProfile: React.FC<NGOProfileProps> = ({
               
               {/* Enhanced CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-6 justify-center lg:justify-start">
-                <Button 
-                  size="lg" 
-                  className="group bg-gradient-to-r from-red-500 via-pink-500 to-rose-500 hover:from-red-600 hover:via-pink-600 hover:to-rose-600 text-white font-bold px-10 py-5 rounded-2xl shadow-2xl transform hover:scale-110 transition-all duration-300 border-2 border-white/20"
-                >
-                  <Icons.favorite className="w-6 h-6 mr-3 group-hover:animate-pulse" />
-                  <span className="text-lg">Donate Now</span>
-                </Button>
+                <Link to={`/donate/${ngo.id}`}>
+                  <Button 
+                    size="lg" 
+                    className="group bg-gradient-to-r from-red-500 via-pink-500 to-rose-500 hover:from-red-600 hover:via-pink-600 hover:to-rose-600 text-white font-bold px-10 py-5 rounded-2xl shadow-2xl transform hover:scale-110 transition-all duration-300 border-2 border-white/20"
+                  >
+                    <Icons.favorite className="w-6 h-6 mr-3 group-hover:animate-pulse" />
+                    <span className="text-lg">Donate Now</span>
+                  </Button>
+                </Link>
                 
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="group border-3 border-white text-white hover:bg-white hover:text-blue-900 font-bold px-10 py-5 rounded-2xl backdrop-blur-sm bg-white/10 transition-all duration-300 transform hover:scale-110 shadow-2xl"
-                >
-                  <Icons.users className="w-6 h-6 mr-3 group-hover:animate-bounce" />
-                  <span className="text-lg">Volunteer with Us</span>
-                </Button>
+                <Link to="/volunteer">
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="group border-3 border-white text-white hover:bg-white hover:text-blue-900 font-bold px-10 py-5 rounded-2xl backdrop-blur-sm bg-white/10 transition-all duration-300 transform hover:scale-110 shadow-2xl"
+                  >
+                    <Icons.users className="w-6 h-6 mr-3 group-hover:animate-bounce" />
+                    <span className="text-lg">Volunteer with Us</span>
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
@@ -254,7 +273,7 @@ const NGOProfile: React.FC<NGOProfileProps> = ({
               </div>
               {programs.length > 0 && (
                 <div className="mt-4 text-right">
-                  <Link to={`/ngos/${ngo.id}/programs`} className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                  <Link to={`/programs?ngoId=${ngo.id}`} className="text-blue-600 hover:text-blue-700 text-sm font-medium">
                     View all programs →
                   </Link>
                 </div>
@@ -470,12 +489,12 @@ const NGOProfile: React.FC<NGOProfileProps> = ({
                         <Icons.externalLink className="w-6 h-6 text-white" />
                       </div>
                       <a 
-                        href={ngo.website} 
+                        href={ngo.website.startsWith('http') ? ngo.website : `https://${ngo.website}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="text-cyan-700 hover:text-cyan-800 font-bold text-lg hover:underline transition-all duration-300"
                       >
-                        {new URL(ngo.website).hostname}
+                        {getSafeHostname(ngo.website)}
                       </a>
                     </div>
                   )}
@@ -550,7 +569,7 @@ const NGOProfile: React.FC<NGOProfileProps> = ({
                 </Button>
               </Link>
               
-              <Link to={`/volunteer/ngo/${ngo.id}`}>
+              <Link to="/volunteer">
                 <Button 
                   variant="outline" 
                   className="group w-full border-3 border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white font-bold py-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-xl bg-white/80 backdrop-blur-sm"
@@ -562,6 +581,20 @@ const NGOProfile: React.FC<NGOProfileProps> = ({
               
               <Button 
                 variant="outline" 
+                onClick={async () => {
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: ngo.name,
+                        text: ngo.description,
+                        url: window.location.href,
+                      });
+                      return;
+                    } catch {}
+                  }
+                  navigator.clipboard.writeText(window.location.href);
+                  alert('NGO profile link copied to clipboard!');
+                }}
                 className="group w-full border-3 border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-gray-400 font-bold py-5 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg bg-white/80 backdrop-blur-sm"
               >
                 <Icons.share className="w-6 h-6 mr-3 group-hover:animate-spin" />

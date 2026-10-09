@@ -40,12 +40,15 @@ const FeaturedNGOs: React.FC<FeaturedNGOsProps> = ({ ngos, loading, error }) => 
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {ngos.map((ngo) => (
+              {ngos.slice(0, 6).map((ngo) => (
                 <Card key={ngo.id} isHoverable className="overflow-hidden flex flex-col h-full">
-                  <div className="h-48 overflow-hidden">
+                  <div className="h-48 overflow-hidden bg-slate-100">
                     <img
-                      src={ngo.logo}
+                      src={ngo.logo || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&auto=format&fit=crop&q=80'}
                       alt={ngo.name}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&auto=format&fit=crop&q=80';
+                      }}
                       className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
                     />
                   </div>
@@ -77,7 +80,12 @@ const FeaturedNGOs: React.FC<FeaturedNGOsProps> = ({ ngos, loading, error }) => 
                         </Button>
                       </Link>
                       {ngo.website && (
-                        <a href={ngo.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-700 flex items-center">
+                        <a 
+                          href={ngo.website.startsWith('http') ? ngo.website : `https://${ngo.website}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                        >
                           Website
                           <ExternalLink className="w-3 h-3 ml-1" />
                         </a>

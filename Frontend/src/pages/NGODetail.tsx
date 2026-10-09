@@ -37,17 +37,18 @@ const NGODetail: React.FC = () => {
       try {
         setLoading(true);
         
-        // Fetch NGO details and related data
-        const [ngoData] = await Promise.all([
-          getNGOById(id),
+        // Fetch primary NGO details
+        const ngoData = await getNGOById(id);
+        setNgo(ngoData);
+        setError(null);
+
+        // Fetch related data in parallel without letting secondary failures break the page
+        await Promise.allSettled([
           fetchPrograms({ ngoId: id }),
-          fetchTestimonials(id),
+          fetchTestimonials({ ngoId: id }),
           fetchMedia({ ngoId: id }),
           fetchNotices({ ngoId: id })
         ]);
-        
-        setNgo(ngoData);
-        setError(null);
       } catch (err: any) {
         setError(err.message || 'Failed to load NGO data');
         setNgo(null);

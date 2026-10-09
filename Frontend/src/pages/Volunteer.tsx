@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Icons } from '../components/icons';
 import Layout from '../components/common/Layout';
 import { VolunteerOpportunity } from '../types';
@@ -17,7 +17,7 @@ const Volunteer: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { opportunities, loading, error, fetchOpportunities, getOpportunityById } = useVolunteerOpportunities();
+  const { opportunities, loading, error, fetchOpportunities, getOpportunityById, applyForOpportunity } = useVolunteerOpportunities();
   const [filteredOpportunities, setFilteredOpportunities] = useState<VolunteerOpportunity[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState<string>('');
@@ -47,8 +47,13 @@ const Volunteer: React.FC = () => {
   // Handler for volunteer application
   const handleVolunteerApply = async (applicationData: any) => {
     try {
-      // Here you can add API call to submit volunteer application
-      console.log('Volunteer application submitted:', applicationData);
+      if (modalOpportunity) {
+        await applyForOpportunity(modalOpportunity.id, {
+          availableHours: 4,
+          experience: applicationData.experience,
+          message: applicationData.motivation
+        });
+      }
       toast.success('Your volunteer application has been submitted successfully!', 'Application Sent');
     } catch (error: any) {
       console.error('Error submitting volunteer application:', error);
@@ -214,8 +219,11 @@ const Volunteer: React.FC = () => {
               <div className="flex flex-col md:flex-row gap-8">
                 <div className="md:w-1/2">
                   <img
-                    src={opportunity.imageUrl || 'https://images.pexels.com/photos/6646907/pexels-photo-6646907.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'}
+                    src={opportunity.imageUrl || 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&auto=format&fit=crop&q=80'}
                     alt={opportunity.title}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&auto=format&fit=crop&q=80';
+                    }}
                     className="w-full h-80 object-cover rounded-lg"
                   />
                   
@@ -269,21 +277,28 @@ const Volunteer: React.FC = () => {
                   </div>
                   
                   <h3 className="text-lg font-semibold mb-3">Organization</h3>
-                  <a href={`/ngos/${opportunity.ngoId}`} className="text-primary-600 hover:underline mb-8 block">
+                  <Link to={`/ngos/${opportunity.ngoId}`} className="text-primary-600 hover:underline mb-8 block">
                     View NGO Profile
-                  </a>
+                  </Link>
                   
                   <div className="mt-8">
                     {opportunity.status === 'open' ? (
                       user ? (
-                        <Button variant="accent" size="lg" className="w-full md:w-auto">
+                        <Button 
+                          variant="accent" 
+                          size="lg" 
+                          className="w-full md:w-auto"
+                          onClick={() => handleViewDetails(opportunity)}
+                        >
                           Apply Now
                         </Button>
                       ) : (
                         <div className="space-y-3">
-                          <Button variant="accent" size="lg" className="w-full md:w-auto">
-                            Log in to Apply
-                          </Button>
+                          <Link to="/login">
+                            <Button variant="accent" size="lg" className="w-full md:w-auto">
+                              Log in to Apply
+                            </Button>
+                          </Link>
                           <p className="text-sm text-slate-500">
                             You need to be logged in to apply for volunteer opportunities.
                           </p>
@@ -301,10 +316,10 @@ const Volunteer: React.FC = () => {
           </Card>
           
           <div className="mt-8">
-            <a href="/volunteer" className="text-primary-600 hover:text-primary-700 flex items-center">
+            <Link to="/volunteer" className="text-primary-600 hover:text-primary-700 flex items-center">
               <Icons.arrowRight className="w-4 h-4 mr-1 rotate-180" />
               Back to all volunteer opportunities
-            </a>
+            </Link>
           </div>
         </div>
       ) : (
@@ -379,7 +394,7 @@ const Volunteer: React.FC = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 aria-label="Filter by status"
               >
-                <option value="all">All Statuses</option>
+                <option value="all">All States</option>
                 <option value="open">Open</option>
                 <option value="filled">Filled</option>
                 <option value="completed">Completed</option>
@@ -451,9 +466,9 @@ const Volunteer: React.FC = () => {
                         >
                           View Details
                         </Button>
-                        <a href={`/ngos/${opportunity.ngoId}`} className="text-sm text-primary-600 hover:text-primary-700">
+                        <Link to={`/ngos/${opportunity.ngoId}`} className="text-sm text-primary-600 hover:text-primary-700">
                           View NGO
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   </CardContent>
@@ -521,7 +536,18 @@ const Volunteer: React.FC = () => {
                 </div>
               </div>
             </div>
-            <Button variant="accent">Register as a Volunteer</Button>
+            <Button 
+              variant="accent"
+              onClick={() => {
+                if (filteredOpportunities.length > 0) {
+                  handleViewDetails(filteredOpportunities[0]);
+                } else {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+            >
+              Register as a Volunteer
+            </Button>
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import Layout from '../components/common/Layout';
 import { Program } from '../types';
 import { usePrograms } from '../hooks/useApiHooks';
@@ -9,9 +9,12 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { Spinner } from '../components/ui/Spinner';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Icons } from '../components/icons';
+import { ProgramDetailsModal } from '../components/program/ProgramDetailsModal';
 
 const Programs: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
+  const [searchParams] = useSearchParams();
+  const ngoIdQuery = searchParams.get('ngoId');
   const { programs, loading, error, fetchPrograms } = usePrograms();
   const [filteredPrograms, setFilteredPrograms] = useState<Program[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,26 +27,53 @@ const Programs: React.FC = () => {
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationInputRef = useRef<HTMLInputElement>(null);
 
+  // Program details modal states
+  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+  const [showModal, setShowModal] = useState<boolean>(false);
+
+  const handleViewDetails = (program: Program) => {
+    setSelectedProgram(program);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedProgram(null);
+  };
+
   useEffect(() => {
-    // Fetch programs when component mounts, with ngoId filter if available
-    if (id) {
-      fetchPrograms({ ngoId: id });
+    // If an ngoId query is provided or id is specified as ngo filter
+    const ngoFilter = ngoIdQuery;
+    if (ngoFilter) {
+      fetchPrograms({ ngoId: ngoFilter });
     } else {
       fetchPrograms();
     }
-  }, [id, fetchPrograms]);
+  }, [id, ngoIdQuery, fetchPrograms]);
+
+  // If the route has an id that matches a program, auto-open the modal
+  useEffect(() => {
+    if (id && programs.length > 0) {
+      const matched = programs.find((p: Program) => p.id === id);
+      if (matched) {
+        setSelectedProgram(matched);
+        setShowModal(true);
+      }
+    }
+  }, [id, programs]);
 
   // Get the programs data, filtering by NGO id if provided
-  const allPrograms = React.useMemo(() => {
+  const allPrograms = useMemo(() => {
     if (!programs) return [];
     
-    // If id parameter exists, filter by NGO id
-    if (id) {
-      return programs.filter((program: Program) => program.ngoId === id);
+    // Check if id or query param is filtering by NGO
+    const targetNgoId = ngoIdQuery || (id && !programs.some((p: Program) => p.id === id) ? id : null);
+    if (targetNgoId) {
+      return programs.filter((program: Program) => program.ngoId === targetNgoId);
     }
     
     return programs;
-  }, [programs, id]);
+  }, [programs, id, ngoIdQuery]);
 
   useEffect(() => {
     let result = allPrograms;
@@ -234,7 +264,7 @@ const Programs: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               aria-label="Filter by status"
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All States</option>
               <option value="upcoming">Upcoming</option>
               <option value="ongoing">Ongoing</option>
               <option value="completed">Completed</option>
@@ -262,18 +292,21 @@ const Programs: React.FC = () => {
             {filteredPrograms.map((program) => (
               <Card key={program.id} isHoverable>
                 <CardContent className="p-0">
-                  <div className="h-48 overflow-hidden relative">
+                  <div className="h-48 overflow-hidden relative bg-slate-100">
                     <img
-                      src={program.imageUrl || 'https://images.pexels.com/photos/6646968/pexels-photo-6646968.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'}
+                      src={program.imageUrl || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&auto=format&fit=crop&q=80'}
                       alt={program.title}
-                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800&auto=format&fit=crop&q=80';
+                      }}
+                      className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
                     />
                     <div className="absolute top-3 right-3">
                       <StatusBadge status={program.status} variant="solid" size="sm" />
                     </div>
                   </div>
                   <div className="p-6">
-                    <h3 className="text-xl font-semibold mb-2">{program.title}</h3>
+                    <h3 className="text-xl font-semibold mb-2 line-clamp-1">{program.title}</h3>
                     <div className="flex items-center text-sm text-slate-500 mb-2">
                       <Icons.calendar className="w-4 h-4 mr-1" />
                       <span>
@@ -285,15 +318,15 @@ const Programs: React.FC = () => {
                       <Icons.location className="w-4 h-4 mr-1" />
                       <span>{program.location}</span>
                     </div>
-                    <p className="text-slate-600 mb-4">
-                      {truncateText(program.description, 150)}
+                    <p className="text-slate-600 mb-4 line-clamp-3">
+                      {truncateText(program.description, 140)}
                     </p>
                     
                     {program.capacity && program.currentParticipants !== undefined && (
                       <div className="mb-4">
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-slate-600">Participation</span>
-                          <span className="text-slate-600">{program.currentParticipants}/{program.capacity}</span>
+                          <span className="text-slate-600 font-medium">{program.currentParticipants}/{program.capacity}</span>
                         </div>
                         <ProgressBar 
                           value={program.currentParticipants} 
@@ -303,13 +336,13 @@ const Programs: React.FC = () => {
                       </div>
                     )}
                     
-                    <div className="flex justify-between items-center mt-4">
-                      <Button variant="primary">
+                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-100">
+                      <Button variant="primary" size="sm" onClick={() => handleViewDetails(program)}>
                         View Details
                       </Button>
-                      <a href={`/ngos/${program.ngoId}`} className="text-sm text-primary-600 hover:text-primary-700">
+                      <Link to={`/ngos/${program.ngoId}`} className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                         View NGO
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </CardContent>
@@ -332,6 +365,15 @@ const Programs: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Program Details Modal */}
+      {selectedProgram && (
+        <ProgramDetailsModal
+          program={selectedProgram}
+          isOpen={showModal}
+          onClose={handleCloseModal}
+        />
+      )}
     </Layout>
   );
 };

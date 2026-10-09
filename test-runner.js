@@ -5,10 +5,11 @@
  * This script tests all the problematic routes and documents the results
  */
 
-const axios = require('axios');
+const rawAxios = require('./Backend/node_modules/axios');
+const axios = rawAxios.default || rawAxios;
 
 const API_BASE = 'http://localhost:3000/api/v1';
-const FRONTEND_BASE = 'http://localhost:5174';
+const FRONTEND_BASE = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Test results storage
 const testResults = {
@@ -225,19 +226,19 @@ async function runTests() {
 async function checkDependencies() {
   try {
     // Check if servers are running
-    await axios.get('http://localhost:3000/health', { timeout: 5000 });
+    await axios.get('http://127.0.0.1:3000/health', { timeout: 5000 });
     console.log('✅ Backend server is running');
   } catch (error) {
-    console.log('❌ Backend server is not running on port 3000');
+    console.log('❌ Backend server is not running on port 3000:', error.message);
     console.log('Please start the backend server first: npm start');
     process.exit(1);
   }
   
   try {
-    await axios.get('http://localhost:5174/', { timeout: 5000 });
+    await axios.get(`${FRONTEND_BASE}/`, { timeout: 5000 });
     console.log('✅ Frontend server is running');
   } catch (error) {
-    console.log('❌ Frontend server is not running on port 5174');
+    console.log(`❌ Frontend server is not running on ${FRONTEND_BASE}:`, error.message);
     console.log('Please start the frontend server first: npm run dev');
     process.exit(1);
   }

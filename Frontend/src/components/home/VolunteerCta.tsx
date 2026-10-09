@@ -42,8 +42,8 @@ const VolunteerCta: React.FC<VolunteerCtaProps> = ({ opportunities, loading, err
   return (
     <section className="py-16 bg-gradient-to-br from-primary-700 to-primary-800 text-white">
       <div className="container">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div className="lg:sticky lg:top-24">
             <h2 className="text-3xl font-bold mb-6">Make a Difference by Volunteering</h2>
             <p className="text-white/90 mb-8 text-lg">
               Your time and skills can create meaningful impact in communities across India. Join our volunteer network and be part of the change.
@@ -108,7 +108,7 @@ const VolunteerCta: React.FC<VolunteerCtaProps> = ({ opportunities, loading, err
             
             <div className="mt-10">
               <Link to="/volunteer">
-                <Button variant="primary" size="lg" className="btn-coral text-white">
+                <Button variant="primary" size="lg" className="btn-coral text-white shadow-lg hover:shadow-xl">
                   Explore Volunteer Opportunities
                 </Button>
               </Link>
@@ -116,38 +116,55 @@ const VolunteerCta: React.FC<VolunteerCtaProps> = ({ opportunities, loading, err
           </div>
           
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-            <h3 className="text-xl font-semibold mb-6">Featured Opportunities</h3>
-            <div className="space-y-6">
-              {opportunities.map((opportunity) => (
-                <div key={opportunity.id} className="bg-white/10 rounded-lg p-4 border border-white/20 hover:bg-white/20 transition-colors">
-                  <h4 className="font-semibold mb-2">{opportunity.title}</h4>
-                  <div className="flex items-center text-sm text-white/80 mb-2">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    <span>{opportunity.location}</span>
-                  </div>
-                  <div className="flex items-center text-sm text-white/80 mb-3">
-                    <Clock className="w-4 h-4 mr-1" />
-                    <span>{formatDate(opportunity.startDate)}{opportunity.endDate ? ` - ${formatDate(opportunity.endDate)}` : ''}</span>
-                  </div>
-                  <p className="text-sm text-white/80 mb-3">
-                    {opportunity.description.length > 100
-                      ? `${opportunity.description.substring(0, 100)}...`
-                      : opportunity.description
-                    }
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs bg-white/20 px-2 py-1 rounded">
-                      {opportunity.requiredHours} hours needed
-                    </div>
-                    <Link to={`/volunteer/opportunities/${opportunity.id}`}>
-                      <Button variant="primary" size="sm" className="btn-coral text-white">
-                        Apply
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold">Featured Opportunities</h3>
+              <Link to="/volunteer" className="text-sm text-white/80 hover:text-white underline">
+                View All
+              </Link>
             </div>
+            
+            {opportunities.length === 0 ? (
+              <p className="text-white/70 text-sm py-8 text-center">
+                No volunteer opportunities currently available. Check back soon!
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {opportunities.slice(0, 3).map((opportunity) => (
+                  <div key={opportunity.id} className="bg-white/10 rounded-lg p-4 border border-white/20 hover:bg-white/20 transition-colors">
+                    <h4 className="font-semibold mb-2">{opportunity.title}</h4>
+                    <div className="flex items-center text-sm text-white/80 mb-2">
+                      <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <span>{opportunity.location}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-white/80 mb-3">
+                      <Clock className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <span>{formatDate(opportunity.startDate)}{opportunity.endDate ? ` - ${formatDate(opportunity.endDate)}` : ''}</span>
+                    </div>
+                    <p className="text-sm text-white/80 mb-3 line-clamp-2">
+                      {opportunity.description}
+                    </p>
+                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                      <div className="text-xs bg-white/20 px-2.5 py-1 rounded-full font-medium">
+                        {opportunity.requiredHours} hours needed
+                      </div>
+                      <Link to={`/volunteer/opportunities/${opportunity.id}`}>
+                        <Button variant="primary" size="sm" className="btn-coral text-white">
+                          Apply
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="pt-2 text-center">
+                  <Link to="/volunteer">
+                    <Button variant="outline" size="sm" className="w-full bg-white/10 hover:bg-white/20 text-white border-white/30">
+                      Explore All Volunteer Opportunities &rarr;
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -41,12 +41,15 @@ const FeaturedPrograms: React.FC<FeaturedProgramsProps> = ({ programs, loading, 
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {programs.map((program) => (
+              {programs.slice(0, 6).map((program) => (
                 <Card key={program.id} isHoverable className="overflow-hidden flex flex-col h-full">
-                  <div className="h-48 overflow-hidden relative">
+                  <div className="h-48 overflow-hidden relative bg-slate-100">
                     <img
-                      src={program.imageUrl || 'https://images.pexels.com/photos/6646968/pexels-photo-6646968.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'}
+                      src={program.imageUrl || 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80'}
                       alt={program.title}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&auto=format&fit=crop&q=80';
+                      }}
                       className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
                     />
                     <div className="absolute top-3 right-3">

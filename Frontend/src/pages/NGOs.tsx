@@ -304,10 +304,13 @@ const NGOs: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredNGOs.map((ngo) => (
               <Card key={ngo.id} isHoverable className="overflow-hidden flex flex-col h-full">
-                <div className="h-48 overflow-hidden">
+                <div className="h-48 overflow-hidden bg-slate-100">
                   <img
-                    src={ngo.logo}
+                    src={ngo.logo || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&auto=format&fit=crop&q=80'}
                     alt={ngo.name}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&auto=format&fit=crop&q=80';
+                    }}
                     className="w-full h-full object-cover transition-transform hover:scale-105 duration-300"
                   />
                 </div>
@@ -344,7 +347,7 @@ const NGOs: React.FC = () => {
                       </Link>
                       {ngo.website && (
                         <a 
-                          href={ngo.website} 
+                          href={ngo.website.startsWith('http') ? ngo.website : `https://${ngo.website}`} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="text-sm text-primary-600 hover:text-primary-700 flex items-center"

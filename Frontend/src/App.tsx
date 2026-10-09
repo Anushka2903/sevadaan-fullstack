@@ -8,7 +8,9 @@ import GrantRequest from './pages/GrantRequest';
 import Programs from './pages/Programs';
 import SearchResults from './pages/SearchResults';
 import Volunteer from './pages/Volunteer';
+import VolunteerApplication from './pages/VolunteerApplication';
 import Donate from './pages/Donate';
+import DonateToProgram from './pages/DonateToProgram';
 import DonationSuccess from './pages/DonationSuccess';
 import DonationHistory from './pages/DonationHistory';
 import NgoDonatePage from './pages/donations/NgoDonatePage';
@@ -49,14 +51,19 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/ngos" element={<NGOs />} />
               <Route path="/ngos/:id" element={<NGODetail />} />
+              <Route path="/ngos/:id/programs" element={<Programs />} />
               <Route path="/ngo/:slug" element={<NGOPublicPage />} />
               <Route path="/programs" element={<Programs />} />
               <Route path="/programs/:id" element={<Programs />} />
+              <Route path="/programs/:id/donate" element={<DonateToProgram />} />
               <Route path="/search" element={<SearchResults />} />
               <Route path="/grants" element={<Grants />} />
               <Route path="/grants/request" element={<GrantRequest />} />
               <Route path="/volunteer" element={<Volunteer />} />
               <Route path="/volunteer/opportunities/:id" element={<Volunteer />} />
+              <Route path="/volunteer/apply/:id" element={<VolunteerApplication />} />
+              <Route path="/volunteer/apply" element={<VolunteerApplication />} />
+              <Route path="/volunteer/ngo/:id" element={<Volunteer />} />
               <Route path="/donate/:id" element={<Donate />} />
               <Route path="/donation-success" element={<DonationSuccess />} />
               <Route path="/donations/history" element={<DonationHistory />} />
