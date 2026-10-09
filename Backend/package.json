@@ -8,7 +8,7 @@
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "build:watch": "tsc -w",
-    "clean": "rimraf dist",
+    "clean": "node -e \"const fs=require('fs');if(fs.existsSync('dist'))fs.rmSync('dist',{recursive:true,force:true})\"",
     "prebuild": "npm run clean",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -72,7 +72,9 @@
     "swagger-ui-express": "^5.0.0",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^4.7.1",
-    "xss": "^1.0.14"
+    "xss": "^1.0.14",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
