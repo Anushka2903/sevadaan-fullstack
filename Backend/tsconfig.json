@@ -29,7 +29,7 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": false,
     "useDefineForClassFields": true,
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
   "include": [
     "src/**/*"
