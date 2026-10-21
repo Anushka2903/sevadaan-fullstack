@@ -124,12 +124,14 @@ const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
-    // Allow any localhost, 127.0.0.1, IPv6 loopback, or sevadaan domains
+    // Allow any localhost, 127.0.0.1, IPv6 loopback, sevadaan, or vercel domains
     if (
       origin.includes('localhost') ||
       origin.includes('127.0.0.1') ||
       origin.includes('::1') ||
-      origin.includes('sevadaan')
+      origin.includes('sevadaan') ||
+      origin.includes('vercel.app') ||
+      config.allowedOrigins.includes(origin)
     ) {
       return callback(null, true);
     }
