@@ -222,6 +222,16 @@ try {
 // Serve static files
 app.use('/uploads', express.static(uploadDir));
 
+// Root endpoint for deployment verification
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'SevaDaan Backend API is running',
+    version: process.env.npm_package_version || '1.0.0',
+    documentation: '/api/v1'
+  });
+});
+
 // Health check endpoint - public access
 app.get('/health', (req, res) => {
   res.status(200).json({
