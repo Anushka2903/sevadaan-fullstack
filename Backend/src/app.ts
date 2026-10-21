@@ -85,12 +85,21 @@ import aiRoutes from './routes/aiRoutes';
 
 const app = express();
 
+import { sanitizeAndSeedRealisticData } from './data/seedRealisticData';
+
 // We'll export a function to start the app after DB connection
 export const startApp = async () => {
   try {
     // Try to connect to MongoDB
     await connectDB();
     safeLog.info('✅ Database connected successfully');
+    
+    // Automatically replace old Latin placeholder data with authentic Indian NGOs and Programs
+    try {
+      await sanitizeAndSeedRealisticData();
+    } catch (seedErr) {
+      safeLog.error('Failed to run realistic data sanitization:', seedErr);
+    }
   } catch (err) {
     safeLog.error('❌ Error connecting to MongoDB:', err);
     safeLog.info('⚠️  Application will continue without database connection. Some features will not work.');

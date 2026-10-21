@@ -427,8 +427,11 @@ const Volunteer: React.FC = () => {
                   <CardContent className="p-0">
                     <div className="h-48 overflow-hidden relative">
                       <img
-                        src={opportunity.imageUrl || 'https://images.pexels.com/photos/6646907/pexels-photo-6646907.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1'}
+                        src={opportunity.imageUrl || 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&auto=format&fit=crop&q=80'}
                         alt={opportunity.title}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&auto=format&fit=crop&q=80';
+                        }}
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute top-3 right-3">

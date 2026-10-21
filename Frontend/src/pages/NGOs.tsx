@@ -82,7 +82,7 @@ const NGOs: React.FC = () => {
   }, [fetchNGOs]);
 
   useEffect(() => {
-    let filtered = ngos;
+    let filtered = displayNGOs;
 
     // Filter by search term
     if (searchTerm) {
@@ -104,7 +104,7 @@ const NGOs: React.FC = () => {
     }
 
     setFilteredNGOs(filtered);
-  }, [ngos, searchTerm, selectedState, selectedCity]);
+  }, [displayNGOs, searchTerm, selectedState, selectedCity]);
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // Search is handled by useEffect
