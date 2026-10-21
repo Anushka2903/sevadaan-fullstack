@@ -120,11 +120,28 @@ app.use(helmet({
 }));
 
 // CORS configuration
-const corsOptions = {
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'], // Allow frontend and backend origins
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, Postman)
+    if (!origin) return callback(null, true);
+    // Allow any localhost, 127.0.0.1, IPv6 loopback, or sevadaan domains
+    if (
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.includes('::1') ||
+      origin.includes('sevadaan')
+    ) {
+      return callback(null, true);
+    }
+    // In development, allow all origins
+    if (config.nodeEnv !== 'production') {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['X-Total-Count']
 };
 

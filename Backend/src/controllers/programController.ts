@@ -5,6 +5,7 @@ import NGO from '../models/NGO';
 import { AuthRequest } from '../middleware/authMiddleware';
 import logger from '../utils/logger';
 import SocketService from '../socket/socketService';
+import mockDataService from '../services/mockDataService';
 
 // Mock data for when database is not available
 const mockPrograms = [
@@ -136,24 +137,7 @@ export const getPrograms = async (req: Request, res: Response): Promise<void> =>
   try {
     // Check if database is connected
     if (mongoose.connection.readyState !== 1) {
-      // Return mock data if database is not connected
-      logger.warn('Database not connected, returning mock data');
-      const { page = 1, limit = 12 } = req.query;
-      const pageNum = Math.max(1, parseInt(typeof page === 'string' ? page : '1'));
-      const limitNum = Math.min(50, Math.max(1, parseInt(typeof limit === 'string' ? limit : '12')));
-      
-      res.status(200).json({
-        success: true,
-        data: mockPrograms.slice(0, limitNum),
-        pagination: {
-          currentPage: pageNum,
-          totalPages: 1,
-          totalRecords: mockPrograms.length,
-          hasNextPage: false,
-          hasPrevPage: false
-        },
-        message: 'Programs retrieved successfully (mock data - database not available)'
-      });
+      res.json(mockDataService.getMockPrograms(req.query));
       return;
     }
 
@@ -279,23 +263,32 @@ export const getPrograms = async (req: Request, res: Response): Promise<void> =>
 
 // Get a single program by ID
 export const getProgramById = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(400).json({ 
-        success: false, 
-        message: 'Invalid program ID' 
-      });
+  if (mongoose.connection.readyState !== 1 || !mongoose.Types.ObjectId.isValid(id)) {
+    const mockProg = mockDataService.getMockProgramById(id);
+    if (mockProg) {
+      res.json({ success: true, data: mockProg });
       return;
     }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(404).json({ success: false, message: 'Program not found' });
+      return;
+    }
+  }
 
+  try {
     const program = await Program.findById(id)
       .populate('ngo', 'name email phone website logo address description verificationStatus')
       .populate('createdBy', 'fullName email')
       .lean();
 
     if (!program) {
+      const mockProg = mockDataService.getMockProgramById(id);
+      if (mockProg) {
+        res.json({ success: true, data: mockProg });
+        return;
+      }
       res.status(404).json({ 
         success: false, 
         message: 'Program not found' 
@@ -308,6 +301,11 @@ export const getProgramById = async (req: Request, res: Response): Promise<void>
       data: program
     });
   } catch (error: any) {
+    const mockProg = mockDataService.getMockProgramById(id);
+    if (mockProg) {
+      res.json({ success: true, data: mockProg });
+      return;
+    }
     logger.error('Error fetching program:', error);
     res.status(500).json({
       success: false,

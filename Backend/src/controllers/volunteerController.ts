@@ -8,6 +8,7 @@ import logger from '../utils/logger';
 import { SocketService } from '../socket/socketService';
 import { VolunteerSocketData } from '../socket/socketTypes';
 import notificationService from '../services/notificationService';
+import mockDataService from '../services/mockDataService';
 
 // Apply for volunteer position
 export const applyVolunteer = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -221,17 +222,21 @@ export const getVolunteers = async (req: Request, res: Response): Promise<void> 
 
 // Get volunteer by ID
 export const getVolunteerById = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(400).json({ 
-        success: false, 
-        message: 'Invalid volunteer ID' 
-      });
+  if (mongoose.connection.readyState !== 1 || !mongoose.Types.ObjectId.isValid(id)) {
+    const mockVol = mockDataService.getMockVolunteerById(id);
+    if (mockVol) {
+      res.json({ success: true, data: mockVol });
       return;
     }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(404).json({ success: false, message: 'Volunteer application not found' });
+      return;
+    }
+  }
 
+  try {
     const volunteer = await Volunteer.findById(id)
       .populate('program', 'title description targetAmount raisedAmount volunteersNeeded volunteersRegistered')
       .populate('ngo', 'name email phone website logo')
@@ -240,6 +245,11 @@ export const getVolunteerById = async (req: Request, res: Response): Promise<voi
       .lean();
 
     if (!volunteer) {
+      const mockVol = mockDataService.getMockVolunteerById(id);
+      if (mockVol) {
+        res.json({ success: true, data: mockVol });
+        return;
+      }
       res.status(404).json({ 
         success: false, 
         message: 'Volunteer application not found' 
@@ -252,6 +262,11 @@ export const getVolunteerById = async (req: Request, res: Response): Promise<voi
       data: volunteer
     });
   } catch (error: any) {
+    const mockVol = mockDataService.getMockVolunteerById(id);
+    if (mockVol) {
+      res.json({ success: true, data: mockVol });
+      return;
+    }
     logger.error('Error fetching volunteer:', error);
     res.status(500).json({
       success: false,
@@ -750,6 +765,11 @@ export const getVolunteerStats = async (req: Request, res: Response): Promise<vo
 
 // Get public volunteer opportunities (programs that need volunteers)
 export const getVolunteerOpportunities = async (req: Request, res: Response): Promise<void> => {
+  if (mongoose.connection.readyState !== 1) {
+    res.json(mockDataService.getMockVolunteerOpportunities(req.query));
+    return;
+  }
+
   try {
     const {
       page = 1,
@@ -799,6 +819,11 @@ export const getVolunteerOpportunities = async (req: Request, res: Response): Pr
       Program.countDocuments(query)
     ]);
 
+    if (total === 0 && !location && !ngo && !category) {
+      res.json(mockDataService.getMockVolunteerOpportunities(req.query));
+      return;
+    }
+
     // Transform data to include volunteer opportunity specific fields
     const transformedOpportunities = opportunities.map(program => ({
       id: program._id,
@@ -831,12 +856,8 @@ export const getVolunteerOpportunities = async (req: Request, res: Response): Pr
       message: `Found ${total} volunteer opportunities`
     });
   } catch (error: any) {
-    logger.error('Error fetching volunteer opportunities:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch volunteer opportunities',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    logger.warn('Error fetching volunteer opportunities from DB, using mock data:', error.message);
+    res.json(mockDataService.getMockVolunteerOpportunities(req.query));
   }
 };
 

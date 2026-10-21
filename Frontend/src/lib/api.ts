@@ -21,8 +21,10 @@ api.interceptors.request.use(
       const token = localStorage.getItem('sevadaan_token');
       const isDemo = localStorage.getItem('sevadaan_demo_mode') === 'true';
       
-      // If in demo mode and this is a protected endpoint, return mock data
-      if (isDemo && token && token.startsWith('demo-') && config.url) {
+      // Only mock endpoints that are explicitly configured in mockApiResponses (e.g. dashboard stats)
+      // Public endpoints like /ngos, /programs, /volunteer-opportunities, /testimonials, etc. must pass through to the backend!
+      const cleanUrl = config.url ? config.url.split('?')[0] : '';
+      if (isDemo && token && token.startsWith('demo-') && mockApiResponses[cleanUrl]) {
         console.log('Demo mode: returning mock response for:', config.url);
         const mockResponse = await getMockResponse(config.url);
         // Return a fake fulfilled request that axios will treat as completed
@@ -35,7 +37,7 @@ api.interceptors.request.use(
         });
       }
       
-      if (token && !token.startsWith('demo-')) {
+      if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       return config;

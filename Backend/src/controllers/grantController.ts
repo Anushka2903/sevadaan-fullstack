@@ -5,6 +5,7 @@ import NGO from '../models/NGO';
 import { AuthRequest } from '../middleware/authMiddleware';
 import logger from '../utils/logger';
 import notificationService from '../services/notificationService';
+import mockDataService from '../services/mockDataService';
 
 // Create a new grant request
 export const createGrantRequest = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -124,10 +125,28 @@ export const getGrants = async (req: Request, res: Response): Promise<void> => {
       query.$text = { $search: search as string };
     }
 
-    // Pagination
     const pageNum = Math.max(1, parseInt(page as string));
     const limitNum = Math.min(100, Math.max(1, parseInt(limit as string)));
     const skip = (pageNum - 1) * limitNum;
+
+    // Fallback to mock data if database is not connected
+    if (mongoose.connection.readyState !== 1) {
+      const mockResult = mockDataService.getMockGrants(req.query);
+      res.json({
+        success: true,
+        data: mockResult.data,
+        pagination: {
+          currentPage: pageNum,
+          totalPages: 1,
+          totalItems: mockResult.data.length,
+          itemsPerPage: limitNum,
+          hasNextPage: false,
+          hasPrevPage: false
+        },
+        message: 'Grants retrieved from local mock data service'
+      });
+      return;
+    }
 
     // Sort options
     const sortOptions: any = {};
@@ -270,6 +289,17 @@ export const getGrants = async (req: Request, res: Response): Promise<void> => {
 export const getGrantById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
+    if (mongoose.connection.readyState !== 1 || !mongoose.Types.ObjectId.isValid(id)) {
+      const mock = mockDataService.getMockGrantById(id);
+      if (mock) {
+        res.json({
+          success: true,
+          data: mock
+        });
+        return;
+      }
+    }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400).json({ 

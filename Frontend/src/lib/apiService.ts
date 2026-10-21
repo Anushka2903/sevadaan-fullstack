@@ -243,7 +243,8 @@ class ApiService {
 
   async getNGOById(id: string): Promise<NGO> {
     const response = await api.get(`/ngos/${id}`);
-    return response.data;
+    const raw = response.data?.data || response.data;
+    return transformNGO(raw);
   }
   
   async createNGO(data: NGORegistrationData): Promise<{ id: string; status: string; message: string }> {
@@ -303,7 +304,17 @@ class ApiService {
 
   async getProgramById(id: string): Promise<Program & { ngo: { id: string; name: string; logo: string } }> {
     const response = await api.get(`/programs/${id}`);
-    return response.data;
+    const raw = response.data?.data || response.data;
+    const transformed = transformProgram(raw);
+    const ngoData = (raw as any)?.ngo || {};
+    return {
+      ...transformed,
+      ngo: {
+        id: ngoData._id || ngoData.id || transformed.ngoId || '',
+        name: ngoData.name || (raw as any)?.ngoName || 'Partner NGO',
+        logo: ngoData.logo || ''
+      }
+    };
   }
 
   async createProgram(data: ProgramCreateRequest): Promise<{ id: string; message: string }> {
@@ -334,7 +345,7 @@ class ApiService {
 
   async getGrantById(id: string): Promise<Grant> {
     const response = await api.get(`/grants/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   }
   
   async submitGrantRequest(data: GrantRequestData): Promise<{ id: string; status: string; message: string }> {
@@ -373,7 +384,17 @@ class ApiService {
 
   async getVolunteerOpportunityById(id: string): Promise<VolunteerOpportunity & { ngo: { id: string; name: string; logo: string } }> {
     const response = await api.get(`/volunteer-opportunities/${id}`);
-    return response.data;
+    const raw = response.data?.data || response.data;
+    const transformed = transformVolunteerOpportunity(raw);
+    const ngoData = (raw as any)?.ngo || {};
+    return {
+      ...transformed,
+      ngo: {
+        id: ngoData._id || ngoData.id || transformed.ngoId || '',
+        name: ngoData.name || (raw as any)?.ngoName || 'Partner NGO',
+        logo: ngoData.logo || ''
+      }
+    };
   }
 
   async applyForVolunteerOpportunity(id: string, data: VolunteerApplicationData): Promise<{ id: string; status: string; message: string }> {
@@ -404,7 +425,7 @@ class ApiService {
 
   async getDonationById(id: string): Promise<Donation & { ngo: { id: string; name: string; logo: string } }> {
     const response = await api.get(`/donations/${id}`);
-    return response.data;
+    return response.data?.data || response.data;
   }
 
   // Emergency Help Endpoints

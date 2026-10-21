@@ -10,6 +10,7 @@ import { Avatar } from '../components/ui/Avatar';
 import { useNGOs } from '../hooks/useApiHooks';
 import { NGO } from '../types';
 import { truncateText } from '../lib/utils';
+import { fallbackNGOs } from '../data/fallbackData';
 
 const NGOs: React.FC = () => {
   const { ngos, loading, error, fetchNGOs } = useNGOs();
@@ -22,9 +23,11 @@ const NGOs: React.FC = () => {
   const [citySuggestions, setCitySuggestions] = useState<string[]>([]);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const cityInputRef = useRef<HTMLInputElement>(null);
+
+  const displayNGOs = ngos.length > 0 ? ngos : fallbackNGOs;
   // Extract unique states and cities for filters
-  const states = Array.from(new Set(ngos.map((ngo: NGO) => ngo.state))).sort();
-  const allCities = Array.from(new Set(ngos.map((ngo: NGO) => ngo.city))).filter(Boolean).sort();
+  const states = Array.from(new Set(displayNGOs.map((ngo: NGO) => ngo.state))).filter(Boolean).sort();
+  const allCities = Array.from(new Set(displayNGOs.map((ngo: NGO) => ngo.city))).filter(Boolean).sort();
     // Comprehensive default cities list including smaller cities
   const defaultCities = [
     // Major Metro Cities

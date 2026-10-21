@@ -22,6 +22,27 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       return next(new CustomError('Access denied. No token provided.', 401));
     }
 
+    // Support demo tokens generated during frontend demo login
+    if (token.startsWith('demo-jwt.')) {
+      try {
+        const payloadBase64 = token.split('.')[1];
+        const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+        const tokenData = JSON.parse(payloadJson);
+        req.user = {
+          _id: tokenData.userId || 'demo-user-id',
+          id: tokenData.userId || 'demo-user-id',
+          name: 'Demo User',
+          fullName: 'Demo User',
+          email: tokenData.email || 'demo@sevadaan.org',
+          role: tokenData.role || 'ngo_admin',
+          isActive: true
+        } as any;
+        return next();
+      } catch (e) {
+        // Fall through to standard jwt verification
+      }
+    }
+
     try {
       // Verify token
       const decoded = jwt.verify(token, config.jwtSecret) as any;

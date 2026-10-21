@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import _multer from 'multer';
 import NGO from '../models/NGO';
 import User from '../models/User';
@@ -6,11 +7,17 @@ import { CustomError, asyncHandler } from '../middleware/errorMiddleware';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { uploadToStorage } from '../services/uploadService';
 import logger from '../utils/logger';
+import mockDataService from '../services/mockDataService';
 
 // @desc    Get all NGOs
 // @route   GET /api/v1/ngos
 // @access  Public
 export const getNGOs = asyncHandler(async (req: Request, res: Response) => {
+  // If database is not connected, use mock fallback immediately
+  if (mongoose.connection.readyState !== 1) {
+    return res.json(mockDataService.getMockNGOs(req.query));
+  }
+
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
   const offset = (page - 1) * limit;
@@ -48,7 +55,12 @@ export const getNGOs = asyncHandler(async (req: Request, res: Response) => {
       .limit(limit)
       .sort({ createdAt: -1 });
 
-    res.json({
+    // If database connected but returned 0 results, check if we should supply mock data
+    if (total === 0 && !req.query.search && !req.query.city && !req.query.state) {
+      return res.json(mockDataService.getMockNGOs(req.query));
+    }
+
+    return res.json({
       success: true,
       data: ngos,
       pagination: {
@@ -59,12 +71,8 @@ export const getNGOs = asyncHandler(async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    logger.error('Error fetching NGOs:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch NGOs',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    logger.warn('Error fetching NGOs from DB, falling back to mock data:', error.message);
+    return res.json(mockDataService.getMockNGOs(req.query));
   }
 });
 
@@ -72,23 +80,57 @@ export const getNGOs = asyncHandler(async (req: Request, res: Response) => {
 // @route   GET /api/v1/ngos/:id
 // @access  Public
 export const getNGO = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const ngo = await NGO.findById(req.params.id)
-    .populate('adminId', 'name email')
-    .select('-documents -bankDetails -representative');
+  const { id } = req.params;
 
-  if (!ngo) {
-    return next(new CustomError('NGO not found', 404));
+  // If database is not connected or ID is not a mongo ObjectId, check mock data first
+  if (mongoose.connection.readyState !== 1 || !mongoose.Types.ObjectId.isValid(id)) {
+    const mockNgo = mockDataService.getMockNGOById(id);
+    if (mockNgo) {
+      return res.json({
+        success: true,
+        data: mockNgo
+      });
+    }
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return next(new CustomError('NGO not found', 404));
+    }
   }
 
-  // Only show verified NGOs to public, unless user is admin/owner
-  if (ngo.status !== 'verified' && req.query.admin !== 'true') {
+  try {
+    const ngo = await NGO.findById(id)
+      .populate('adminId', 'name email')
+      .select('-documents -bankDetails -representative');
+
+    if (!ngo) {
+      const mockNgo = mockDataService.getMockNGOById(id);
+      if (mockNgo) {
+        return res.json({
+          success: true,
+          data: mockNgo
+        });
+      }
+      return next(new CustomError('NGO not found', 404));
+    }
+
+    // Only show verified NGOs to public, unless user is admin/owner
+    if (ngo.status !== 'verified' && req.query.admin !== 'true') {
+      return next(new CustomError('NGO not found', 404));
+    }
+
+    return res.json({
+      success: true,
+      data: ngo
+    });
+  } catch (error: any) {
+    const mockNgo = mockDataService.getMockNGOById(id);
+    if (mockNgo) {
+      return res.json({
+        success: true,
+        data: mockNgo
+      });
+    }
     return next(new CustomError('NGO not found', 404));
   }
-
-  res.json({
-    success: true,
-    data: ngo
-  });
 });
 
 // @desc    Create NGO

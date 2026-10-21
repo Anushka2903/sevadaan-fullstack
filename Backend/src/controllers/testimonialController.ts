@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Testimonial from '../models/Testimonial';
 import NGO from '../models/NGO';
 import Program from '../models/Program';
 import { checkPermission } from '../utils/permissions';
 import logger from '../utils/logger';
+import mockDataService from '../services/mockDataService';
 
 // Create testimonial
 export const createTestimonial = async (req: Request, res: Response): Promise<void> => {
@@ -99,6 +101,24 @@ export const getTestimonials = async (req: Request, res: Response): Promise<void
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string)));
     const skip = (pageNum - 1) * limitNum;
 
+    // Fallback to mock data if database is not connected
+    if (mongoose.connection.readyState !== 1) {
+      const mockResult = mockDataService.getMockTestimonials(req.query);
+      res.json({
+        success: true,
+        data: mockResult.data,
+        pagination: {
+          currentPage: pageNum,
+          totalPages: 1,
+          totalItems: mockResult.data.length,
+          itemsPerPage: limitNum,
+          hasNextPage: false,
+          hasPrevPage: false
+        }
+      });
+      return;
+    }
+
     // Build query
     const query: any = {};
     
@@ -151,6 +171,17 @@ export const getTestimonials = async (req: Request, res: Response): Promise<void
 export const getTestimonial = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
+    if (mongoose.connection.readyState !== 1 || !mongoose.Types.ObjectId.isValid(id)) {
+      const mock = mockDataService.getMockTestimonials({}).data.find((t: any) => t.id === id || t._id === id);
+      if (mock) {
+        res.json({
+          success: true,
+          data: mock
+        });
+        return;
+      }
+    }
 
     const testimonial = await Testimonial.findById(id)
       .populate('ngo', 'name logo')

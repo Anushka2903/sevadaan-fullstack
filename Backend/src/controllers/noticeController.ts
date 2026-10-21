@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import Notice from '../models/Notice';
 import NGO from '../models/NGO';
 import { checkPermission } from '../utils/permissions';
 import logger from '../utils/logger';
+import mockDataService from '../services/mockDataService';
 
 // Create notice
 export const createNotice = async (req: Request, res: Response): Promise<void> => {
@@ -98,6 +100,24 @@ export const getNotices = async (req: Request, res: Response): Promise<void> => 
     const limitNum = Math.min(50, Math.max(1, parseInt(limit as string)));
     const skip = (pageNum - 1) * limitNum;
 
+    // Fallback to mock data if database is not connected
+    if (mongoose.connection.readyState !== 1) {
+      const mockResult = mockDataService.getMockNotices(req.query);
+      res.json({
+        success: true,
+        data: mockResult.data,
+        pagination: {
+          currentPage: pageNum,
+          totalPages: 1,
+          totalItems: mockResult.data.length,
+          itemsPerPage: limitNum,
+          hasNextPage: false,
+          hasPrevPage: false
+        }
+      });
+      return;
+    }
+
     // Build query
     const query: any = {};
     
@@ -156,6 +176,17 @@ export const getNotices = async (req: Request, res: Response): Promise<void> => 
 export const getNotice = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+
+    if (mongoose.connection.readyState !== 1 || !mongoose.Types.ObjectId.isValid(id)) {
+      const mock = mockDataService.getMockNotices({}).data.find((n: any) => n.id === id || n._id === id);
+      if (mock) {
+        res.json({
+          success: true,
+          data: mock
+        });
+        return;
+      }
+    }
 
     const notice = await Notice.findById(id)
       .populate('ngoId', 'name logo')

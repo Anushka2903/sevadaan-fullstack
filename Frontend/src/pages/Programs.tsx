@@ -10,6 +10,7 @@ import { Spinner } from '../components/ui/Spinner';
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Icons } from '../components/icons';
 import { ProgramDetailsModal } from '../components/program/ProgramDetailsModal';
+import { fallbackPrograms } from '../data/fallbackData';
 
 const Programs: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
@@ -64,15 +65,15 @@ const Programs: React.FC = () => {
 
   // Get the programs data, filtering by NGO id if provided
   const allPrograms = useMemo(() => {
-    if (!programs) return [];
+    const list = programs && programs.length > 0 ? programs : fallbackPrograms;
     
     // Check if id or query param is filtering by NGO
-    const targetNgoId = ngoIdQuery || (id && !programs.some((p: Program) => p.id === id) ? id : null);
+    const targetNgoId = ngoIdQuery || (id && !list.some((p: Program) => p.id === id) ? id : null);
     if (targetNgoId) {
-      return programs.filter((program: Program) => program.ngoId === targetNgoId);
+      return list.filter((program: Program) => program.ngoId === targetNgoId);
     }
     
-    return programs;
+    return list;
   }, [programs, id, ngoIdQuery]);
 
   useEffect(() => {

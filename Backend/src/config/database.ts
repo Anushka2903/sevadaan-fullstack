@@ -43,6 +43,9 @@ export const connectDB = async (): Promise<typeof mongoose | null> => {
     return cachedConnection;
   }
 
+  const isProd = config.nodeEnv === 'production';
+  const effectiveMaxRetries = isProd ? MAX_RETRIES : 1;
+
   try {
     // Set mongoose options
     mongoose.set('strictQuery', false);
@@ -56,12 +59,12 @@ export const connectDB = async (): Promise<typeof mongoose | null> => {
     // For development, use a default MongoDB URI if not configured
     const uri = config.mongodbUri || 'mongodb://localhost:27017/sevadaan_dev';
     
-    console.log(`Connecting to MongoDB at: ${uri.split('@').length > 1 ? uri.split('@')[1] : 'localhost'}`);    const conn = await mongoose.connect(uri, {
-      // Connection options
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 10000, // Keep trying to send operations for 10 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferCommands: true, // Enable mongoose buffering to queue operations
+    console.log(`Connecting to MongoDB at: ${uri.split('@').length > 1 ? uri.split('@')[1] : 'localhost'}`);
+    const conn = await mongoose.connect(uri, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: isProd ? 10000 : 2500, // 2.5s quick timeout in development
+      socketTimeoutMS: 45000,
+      bufferCommands: false, // Don't hang indefinitely if connection fails
     });
 
     cachedConnection = conn;
@@ -98,15 +101,18 @@ export const connectDB = async (): Promise<typeof mongoose | null> => {
     return conn;
   } catch (error: any) {
     connectionRetries++;
-    safeLog.error(`MongoDB connection error (attempt ${connectionRetries}/${MAX_RETRIES}):`, error);
+    if (isProd) {
+      safeLog.error(`MongoDB connection error (attempt ${connectionRetries}/${effectiveMaxRetries}):`, error);
+    } else {
+      safeLog.info(`ℹ️ Local MongoDB service is offline (localhost:27017).`);
+    }
     
-    if (connectionRetries < MAX_RETRIES) {
-      safeLog.info(`Retrying connection in 5 seconds...`);
-      await new Promise(resolve => setTimeout(resolve, 5000));
+    if (connectionRetries < effectiveMaxRetries) {
+      safeLog.info(`Retrying connection in 3 seconds...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
       return connectDB();
     } else {
-      safeLog.error(`Failed to connect to MongoDB after ${MAX_RETRIES} attempts. Application will continue without database.`);
-      // Return null instead of throwing to allow the app to start without DB
+      safeLog.info(`⚡ Offline fallback active: Application is using the built-in mock data service seamlessly.`);
       return null;
     }
   }

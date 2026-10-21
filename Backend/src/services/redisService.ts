@@ -40,25 +40,21 @@ export class RedisService {
       this.errorsSuppressed = false;
     });
 
-    this.client.on('error', (error: Error) => {
-      if (this.connectionAttempts < this.maxConnectionAttempts && !this.errorsSuppressed) {
-        logger.error('Redis client error:', error);
-        this.connectionAttempts++;
+    this.client.on('error', (_error: Error) => {
+      if (!this.errorsSuppressed) {
+        this.errorsSuppressed = true;
+        this.connectionAttempts = this.maxConnectionAttempts;
+        logger.info('ℹ️ Redis service is offline (localhost:6379). Socket.IO is using in-memory adapter seamlessly.');
         
-        if (this.connectionAttempts >= this.maxConnectionAttempts) {
-          this.errorsSuppressed = true;
-          logger.warn('Redis connection failed after maximum attempts. Errors will be suppressed.');
-          
-          // Remove all error listeners to prevent further error logging
-          this.client.removeAllListeners('error');
-          this.subscriber.removeAllListeners('error');
-          this.publisher.removeAllListeners('error');
-          
-          // Add silent error handlers
-          this.client.on('error', () => {});
-          this.subscriber.on('error', () => {});
-          this.publisher.on('error', () => {});
-        }
+        // Remove all error listeners to prevent further error logging
+        this.client.removeAllListeners('error');
+        this.subscriber.removeAllListeners('error');
+        this.publisher.removeAllListeners('error');
+        
+        // Add silent error handlers
+        this.client.on('error', () => {});
+        this.subscriber.on('error', () => {});
+        this.publisher.on('error', () => {});
       }
       this.connected = false;
     });
@@ -80,17 +76,8 @@ export class RedisService {
     });
 
     // Initial silent error handlers for subscriber and publisher
-    this.subscriber.on('error', (error: Error) => {
-      if (!this.errorsSuppressed && this.connectionAttempts < this.maxConnectionAttempts) {
-        logger.error('Redis subscriber error:', error);
-      }
-    });
-    
-    this.publisher.on('error', (error: Error) => {
-      if (!this.errorsSuppressed && this.connectionAttempts < this.maxConnectionAttempts) {
-        logger.error('Redis publisher error:', error);
-      }
-    });
+    this.subscriber.on('error', () => {});
+    this.publisher.on('error', () => {});
   }
 
   /**

@@ -12,6 +12,7 @@ import { useVolunteerOpportunities } from '../hooks/useApiHooks';
 import { getVolunteerStatusBadge } from '../lib/status-utils';
 import { useToast } from '../components/ui/Toast';
 import { VolunteerDetailsModal } from '../components/volunteer/VolunteerDetailsModal';
+import { fallbackVolunteerOpportunities } from '../data/fallbackData';
 
 const Volunteer: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
@@ -74,20 +75,21 @@ const Volunteer: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    let result = opportunities;
+    const list = opportunities && opportunities.length > 0 ? opportunities : fallbackVolunteerOpportunities;
+    let result = list;
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
         (opportunity: VolunteerOpportunity) => 
-          opportunity.title.toLowerCase().includes(query) || 
-          opportunity.description.toLowerCase().includes(query)
+          (opportunity.title || '').toLowerCase().includes(query) || 
+          (opportunity.description || '').toLowerCase().includes(query)
       );
     }
     
     if (locationFilter) {
       result = result.filter((opportunity: VolunteerOpportunity) => 
-        opportunity.location.toLowerCase().includes(locationFilter.toLowerCase())
+        (opportunity.location || '').toLowerCase().includes(locationFilter.toLowerCase())
       );
     }
     
@@ -99,7 +101,7 @@ const Volunteer: React.FC = () => {
   }, [searchQuery, locationFilter, statusFilter, opportunities]);
 
   // Location autocomplete functionality
-  const allLocations = [...new Set(opportunities.map((opportunity: VolunteerOpportunity) => opportunity.location))];
+  const allLocations = [...new Set((opportunities && opportunities.length > 0 ? opportunities : fallbackVolunteerOpportunities).map((opportunity: VolunteerOpportunity) => opportunity.location))].filter(Boolean);
   
   // Comprehensive default cities list including smaller cities
   const defaultCities = [

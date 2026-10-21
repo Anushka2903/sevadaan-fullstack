@@ -2,7 +2,12 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import sharp from 'sharp';
+let sharp: any;
+try {
+  sharp = require('sharp');
+} catch (e) {
+  // Sharp native module might not be compiled for all environments
+}
 import config from '../config/config';
 import logger from '../utils/logger';
 
@@ -159,7 +164,7 @@ const uploadToFirebase = async (file: FileUpload, folder: string): Promise<strin
 
   // Optimize image if it's an image
   let processedBuffer = fileBuffer;
-  if (ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+  if (sharp && ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
     processedBuffer = await sharp(fileBuffer)
       .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
       .jpeg({ quality: 85 })
@@ -238,16 +243,28 @@ const uploadToLocal = (file: FileUpload, folder: string): string => {
 // Optimize image
 export const optimizeImage = async (inputPath: string, outputPath: string): Promise<void> => {
   try {
-    await sharp(inputPath)
-      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toFile(outputPath);
-    
-    // Remove original file
-    fs.unlinkSync(inputPath);
+    if (sharp) {
+      await sharp(inputPath)
+        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toFile(outputPath);
+      
+      // Remove original file
+      fs.unlinkSync(inputPath);
+      return;
+    }
+
+    // Fallback if sharp is not available: copy file to destination
+    if (inputPath !== outputPath) {
+      fs.copyFileSync(inputPath, outputPath);
+      fs.unlinkSync(inputPath);
+    }
   } catch (error) {
     logger.error('Error optimizing image:', error);
-    throw error;
+    // Don't throw if optimization fails, ensure file exists
+    if (!fs.existsSync(outputPath) && fs.existsSync(inputPath)) {
+      fs.copyFileSync(inputPath, outputPath);
+    }
   }
 };
 

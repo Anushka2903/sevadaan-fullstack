@@ -1,4 +1,16 @@
 {
+  "name": "sevadaan-workspace",
+  "version": "1.0.0",
+  "description": "SevaDaan NGO Platform Root Workspace",
+  "scripts": {
+    "test": "node test-runner.js",
+    "backend": "node Backend/test-api-server.js",
+    "Backend": "node Backend/test-api-server.js",
+    "backend:full": "npm --prefix Backend run dev",
+    "frontend": "npm --prefix Frontend run dev",
+    "Frontend": "npm --prefix Frontend run dev",
+    "build": "npm --prefix Frontend run build && npm --prefix Backend run build"
+  },
   "devDependencies": {
     "axios": "^1.10.0",
     "chalk": "^5.4.1"

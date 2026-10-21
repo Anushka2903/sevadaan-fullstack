@@ -6,6 +6,10 @@
   "scripts": {
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts",
+    "backend": "node test-api-server.js",
+    "Backend": "node test-api-server.js",
+    "server:mock": "node test-api-server.js",
+    "dev:mock": "nodemon test-api-server.js",
     "build": "tsc",
     "build:watch": "tsc -w",
     "test": "jest",
